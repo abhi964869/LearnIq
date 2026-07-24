@@ -1,8 +1,12 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
+  "version": 2,
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" },
+    { "src": "public/**", "use": "@vercel/static" }
   ],
-  "functions": {
-    "api/index.py": { "maxDuration": 60 }
-  }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "api/index.py" },
+    { "src": "/(.*\\.[a-zA-Z0-9]+)$", "dest": "public/$1" },
+    { "src": "/(.*)", "dest": "public/index.html" }
+  ]
 }
