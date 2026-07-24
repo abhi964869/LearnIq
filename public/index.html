@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LearnIQ AI — The AI Learning Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/assets/learniq-icon.svg">
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.32.0/plotly.min.js" defer></script>
+</head>
+<body>
+
+<div class="modal-overlay" id="authOverlay" onclick="if(event.target===this)closeAuth()">
+  <div class="modal" style="max-width:420px;text-align:center;position:relative">
+    <button class="btn-link" onclick="closeAuth()" style="position:absolute;top:16px;right:20px">Close</button>
+    <div class="nav-brand" style="justify-content:center;margin-bottom:8px">
+      <img src="/assets/learniq-mark.svg" alt="LearnIQ" class="brand-mark">
+      <span class="brand-text">LearnIQ<span> AI</span></span>
+    </div>
+    <p class="muted" id="authTagline" style="margin-bottom:24px">Sign in to your learning workspace</p>
+    <div id="authNameRow" style="display:none">
+      <input type="text" id="authName" placeholder="Your name" style="width:100%;margin-bottom:12px">
+    </div>
+    <input type="email" id="authEmail" placeholder="Email" style="width:100%;margin-bottom:12px" autocomplete="username">
+    <input type="password" id="authPassword" placeholder="Password" style="width:100%" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitAuth()">
+    <button class="btn btn-primary" id="authSubmit" style="width:100%;margin-top:20px" onclick="submitAuth()">Sign in</button>
+    <p class="muted" style="margin-top:16px">
+      <span id="authSwitchText">New here?</span>
+      <button class="btn-link" id="authSwitch" onclick="toggleAuthMode()">Create an account</button>
+    </p>
+    <p class="muted" style="margin-top:8px;font-size:12px">Your account is stored only on this device.</p>
+  </div>
+</div>
+
+
+<nav class="nav" id="appNav">
+  <div class="nav-brand" onclick="go('dashboard')">
+    <img src="/assets/learniq-mark.svg" alt="LearnIQ" class="brand-mark">
+    <span class="brand-text">LearnIQ<span> AI</span></span>
+  </div>
+  <div class="nav-links" id="navLinks"></div>
+  <div class="nav-right">
+    <select class="nav-select" id="navSelect" onchange="go(this.value)"></select>
+    <div class="xp-pill" id="xpPill"></div>
+    <button class="btn btn-secondary btn-sm" id="authBtn" onclick="openAuth()">Log in</button>
+  </div>
+</nav>
+
+<!-- ==================== DASHBOARD ==================== -->
+<section class="view" id="view-dashboard">
+  <div class="hero">
+    <h1 id="welcomeTitle">Learn anything.</h1>
+    <p id="studyingLine">Your documents, turned into a personal learning operating system.</p>
+    <div class="cta-row">
+      <button class="btn btn-primary" onclick="go('library')">Upload a Document</button>
+      <button class="btn btn-secondary" onclick="go('chat')">Ask Your Documents</button>
+    </div>
+  </div>
+  <div class="card white" style="max-width:760px;margin:0 auto 48px;border:1px solid var(--cloud)">
+    <div class="row">
+      <input type="text" id="homeQuery" placeholder="What do you want to study today? Or ask a doubt…"
+             style="flex:1;min-width:220px" onkeydown="if(event.key==='Enter')homeAsk()">
+      <button class="btn btn-primary btn-sm" id="homeStudyBtn" onclick="homeStudy()">Study topic</button>
+      <button class="btn btn-secondary btn-sm" id="homeAskBtn" onclick="openDoubt()">Ask doubt</button>
+      <button class="btn btn-secondary btn-sm" id="homeDl" onclick="downloadHome()" style="display:none">Download PDF</button>
+    </div>
+    <div id="homeResult" class="md" style="margin-top:8px"></div>
+  </div>
+  <div class="grid grid-4" id="dashMetrics"></div>
+  <h2 class="section-title">Today</h2>
+  <div class="grid grid-2">
+    <div class="card"><h3>Study plan</h3><div id="dashPlan" class="muted" style="margin-top:8px">Generate a roadmap to see today's plan.</div>
+      <div style="margin-top:16px"><button class="btn btn-secondary btn-sm" onclick="go('roadmap')">Open Roadmap</button></div></div>
+    <div class="card"><h3>Weak topics</h3><div id="dashWeak" class="muted" style="margin-top:8px">Take quizzes and LearnIQ will find your weak spots.</div>
+      <div style="margin-top:16px"><button class="btn btn-secondary btn-sm" onclick="go('analytics')">Open Analytics</button></div></div>
+  </div>
+  <h2 class="section-title" id="videosTitle">Recommended videos</h2>
+  <div class="grid grid-4" id="dashVideos"></div>
+  <h2 class="section-title">Recent documents</h2>
+  <div id="dashDocs"></div>
+</section>
+
+<!-- ==================== LIBRARY ==================== -->
+<section class="view" id="view-library">
+  <div class="row spread"><h1 style="font-size:28px">Library</h1>
+    <input type="text" id="libSearch" placeholder="Search concepts across all documents…" style="width:340px" onkeydown="if(event.key==='Enter')semanticSearch()"></div>
+  <div class="upload-zone" id="uploadZone" style="margin-top:24px">
+    <div class="big">Drop a file here, or click to upload</div>
+    <div class="sub">PDF · DOCX · TXT · MD — up to 15 MB</div>
+    <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md" hidden multiple>
+  </div>
+  <div id="searchResults"></div>
+  <h2 class="section-title">Documents</h2>
+  <div id="docList"></div>
+</section>
+
+<!-- ==================== CHAT ==================== -->
+<section class="view" id="view-chat">
+  <div class="topicbar" id="topicbar-chat"></div>
+  <h1 style="font-size:28px;margin-bottom:24px">AI Chat</h1>
+  <div class="chat-wrap">
+    <div>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-input-bar">
+        <input type="text" id="chatInput" placeholder="Ask a question about your documents…" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn btn-primary" id="chatSend" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+    <aside class="chat-side">
+      <h3>Chat over</h3><div id="chatDocPick"></div>
+      <h3 style="margin-top:24px">History</h3><div id="chatHistoryList"></div>
+      <div style="margin-top:16px" class="row">
+        <button class="btn-link" onclick="newChat()">New chat</button>
+        <button class="btn-link" onclick="exportChat()">Export PDF</button>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ==================== QUIZ ==================== -->
+<section class="view" id="view-quiz">
+  <div class="topicbar" id="topicbar-quiz"></div>
+  <h1 style="font-size:28px;margin-bottom:24px">Quiz</h1>
+  <div id="quizSetup">
+    <div class="card">
+      <div class="row">
+        <label>Source&nbsp;<select id="quizDoc"></select></label>
+        <label>Questions&nbsp;<select id="quizCount"><option>5</option><option selected>8</option><option>12</option><option>16</option></select></label>
+        <label>Difficulty&nbsp;<select id="quizDiff"><option>easy</option><option selected>medium</option><option>hard</option></select></label>
+      </div>
+      <div class="muted" style="margin-top:8px">Quizzes are generated from your topic by default — uploading a document is optional.</div>
+      <div class="row" style="margin-top:12px">
+        <label><input type="checkbox" class="qtype" value="mcq" checked> Multiple choice</label>
+        <label><input type="checkbox" class="qtype" value="true_false" checked> True / False</label>
+        <label><input type="checkbox" class="qtype" value="fill_blank"> Fill in the blank</label>
+        <label><input type="checkbox" class="qtype" value="short_answer"> Short answer</label>
+      </div>
+      <div style="margin-top:20px"><button class="btn btn-primary" id="quizStartBtn" onclick="startQuiz()">Start Quiz</button></div>
+    </div>
+  </div>
+  <div id="quizRun" style="display:none">
+    <div class="row spread" style="margin-bottom:24px">
+      <div class="muted" id="quizProgress"></div><div class="quiz-timer" id="quizTimer">0:00</div>
+    </div>
+    <div id="quizQuestion"></div>
+  </div>
+  <div id="quizResults" style="display:none"></div>
+</section>
+
+<!-- ==================== NOTES ==================== -->
+<section class="view" id="view-notes">
+  <div class="topicbar" id="topicbar-notes"></div>
+  <h1 style="font-size:28px;margin-bottom:24px">Notes</h1>
+  <div class="card">
+    <div class="row">
+      <label>Document&nbsp;<select id="notesDoc"></select></label>
+      <label>Type&nbsp;<select id="notesMode">
+        <option value="summary">Summary</option><option value="key_concepts">Key concepts</option>
+        <option value="definitions">Definitions</option><option value="examples">Examples</option>
+        <option value="formulas">Formula sheet</option><option value="interview">Interview questions</option>
+      </select></label>
+      <button class="btn btn-primary" id="notesBtn" onclick="makeNotes()">Generate</button>
+      <button class="btn btn-secondary btn-sm" id="notesDl" onclick="downloadNotes()" style="display:none">Download PDF</button>
+    </div>
+  </div>
+  <div id="notesOut" class="md" style="margin-top:32px"></div>
+</section>
+
+<!-- ==================== FLASHCARDS ==================== -->
+<section class="view" id="view-flashcards">
+  <div class="topicbar" id="topicbar-flashcards"></div>
+  <h1 style="font-size:28px;margin-bottom:24px">Flashcards</h1>
+  <div class="card">
+    <div class="row">
+      <label>Document&nbsp;<select id="fcDoc"></select></label>
+      <label>Cards&nbsp;<select id="fcCount"><option>8</option><option selected>12</option><option>20</option><option>30</option></select></label>
+      <button class="btn btn-primary" id="fcBtn" onclick="makeCards()">Generate</button>
+      <button class="btn btn-secondary btn-sm" onclick="shuffleCards()">Shuffle</button>
+      <button class="btn btn-secondary btn-sm" id="fcDl" onclick="downloadCards()" style="display:none">Download PDF</button>
+    </div>
+  </div>
+  <div id="fcArea"></div>
+</section>
+
+<!-- ==================== ROADMAP ==================== -->
+<section class="view" id="view-roadmap">
+  <div class="topicbar" id="topicbar-roadmap"></div>
+  <h1 style="font-size:28px;margin-bottom:24px">Study Roadmap</h1>
+  <div class="card">
+    <div class="row">
+      <label>Horizon&nbsp;<select id="rmHorizon"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option></select></label>
+      <label>Minutes / day&nbsp;<input type="number" id="rmMinutes" value="60" min="15" max="480" style="width:90px"></label>
+      <button class="btn btn-primary" id="rmBtn" onclick="makeRoadmap()">Generate Roadmap</button>
+      <button class="btn btn-secondary btn-sm" id="rmDl" onclick="downloadRoadmap()" style="display:none">Download PDF</button>
+    </div>
+    <div class="muted" style="margin-top:8px">Roadmaps use your documents and quiz history — retake after quizzes to auto-update.</div>
+  </div>
+  <div id="rmOut" class="md" style="margin-top:32px"></div>
+</section>
+
+<!-- ==================== ANALYTICS ==================== -->
+<section class="view" id="view-analytics">
+  <h1 style="font-size:28px;margin-bottom:24px">Analytics</h1>
+  <div class="grid grid-4" id="anMetrics"></div>
+  <h2 class="section-title">Activity heatmap (last 26 weeks)</h2>
+  <div class="heatmap" id="anHeatmap"></div>
+  <div class="grid grid-2" style="margin-top:32px">
+    <div class="card white"><div id="anAccuracy" style="height:300px"></div></div>
+    <div class="card white"><div id="anMastery" style="height:300px"></div></div>
+  </div>
+  <h2 class="section-title">Weak topics &amp; revision plan</h2>
+  <div class="row"><button class="btn btn-secondary btn-sm" id="weakBtn" onclick="refreshWeak()">Analyze quiz history</button></div>
+  <div id="anWeak" class="md" style="margin-top:16px"></div>
+</section>
+
+<!-- ==================== EXPLAIN (ELI5) ==================== -->
+<section class="view" id="view-explain">
+  <div class="topicbar" id="topicbar-explain"></div>
+  <h1 style="font-size:28px;margin-bottom:24px">Explain</h1>
+  <div class="card">
+    <div class="row">
+      <input type="text" id="eliConcept" placeholder="A concept, e.g. gradient descent…" style="flex:1;min-width:220px" onkeydown="if(event.key==='Enter')explainConcept()">
+      <select id="eliLevel"><option value="beginner">Like I'm five</option><option value="intermediate">Student</option><option value="advanced">Expert</option></select>
+      <button class="btn btn-primary" id="eliBtn" onclick="explainConcept()">Explain</button>
+      <button class="btn btn-secondary btn-sm" id="eliDl" onclick="downloadEli()" style="display:none">Download PDF</button>
+    </div>
+  </div>
+  <div id="eliOut" class="md" style="margin-top:32px"></div>
+</section>
+
+<!-- ==================== SETTINGS ==================== -->
+<section class="view" id="view-settings">
+  <h1 style="font-size:28px;margin-bottom:24px">Settings</h1>
+  <div class="card" style="max-width:640px;margin-bottom:16px">
+    <h3>Account</h3>
+    <div id="accountInfo" class="muted" style="margin:8px 0 16px"></div>
+    <button class="btn btn-secondary btn-sm" onclick="doLogout()">Log out</button>
+  </div>
+  <div class="card" style="max-width:640px">
+    <h3>AI service</h3>
+    <p class="muted" style="margin:8px 0 16px">This app runs on the owner's Claude API key, configured on the server. No API keys are ever entered, stored, or transmitted by your browser.</p>
+    <div id="keyStatus" class="muted"></div>
+  </div>
+  <div class="card" style="max-width:640px;margin-top:16px">
+    <h3>Data</h3>
+    <p class="muted" style="margin:8px 0 16px">Documents, chats, and progress live in your browser (IndexedDB). Nothing is stored on the server.</p>
+    <button class="btn-link btn-danger-link" onclick="wipeAll()">Erase all local data</button>
+  </div>
+</section>
+
+<!-- ==================== SCAN ==================== -->
+<section class="view" id="view-scan">
+  <div class="topicbar" id="topicbar-scan"></div>
+  <h1 style="font-size:28px;margin-bottom:8px">Scan a Question</h1>
+  <p class="muted" style="margin-bottom:24px">Take a photo of a question or upload one from your gallery, and get a worked answer.</p>
+  <div class="grid grid-2">
+    <div class="card white" style="border:1px solid var(--cloud)">
+      <h3>Camera</h3>
+      <video id="scanVideo" playsinline style="width:100%;border-radius:var(--radius-card);margin-top:12px;display:none;background:var(--carbon)"></video>
+      <canvas id="scanCanvas" style="display:none"></canvas>
+      <div class="row" style="margin-top:12px">
+        <button class="btn btn-secondary btn-sm" id="scanStartCam" onclick="startCamera()">Open camera</button>
+        <button class="btn btn-primary btn-sm" id="scanSnap" onclick="snapPhoto()" style="display:none">Capture</button>
+        <button class="btn-link" id="scanStopCam" onclick="stopCamera()" style="display:none">Stop</button>
+      </div>
+    </div>
+    <div class="card white" style="border:1px solid var(--cloud)">
+      <h3>Upload from gallery</h3>
+      <div class="upload-zone" id="scanZone" style="padding:40px 24px;margin-top:12px">
+        <div class="big">Choose a photo</div>
+        <div class="sub">JPG · PNG · WEBP — or take one with your camera</div>
+        <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+      </div>
+    </div>
+  </div>
+  <div id="scanPreviewWrap" style="display:none;margin-top:24px" class="card">
+    <div class="row spread">
+      <h3 style="margin:0">Your question</h3>
+      <button class="btn-link" onclick="clearScan()">Clear</button>
+    </div>
+    <img id="scanPreview" alt="scanned question" style="max-width:100%;max-height:340px;border-radius:var(--radius-card);margin-top:12px;display:block">
+    <div class="row" style="margin-top:16px">
+      <input type="text" id="scanPrompt" placeholder="Optional: e.g. only solve question 3" style="flex:1;min-width:200px">
+      <button class="btn btn-primary" id="scanSolveBtn" onclick="solveScan()">Get answer</button>
+      <button class="btn btn-secondary btn-sm" id="scanDl" onclick="downloadScan()" style="display:none">Download PDF</button>
+    </div>
+  </div>
+  <div id="scanAnswer" class="md" style="margin-top:32px"></div>
+  <h2 class="section-title" id="scanVideosTitle" style="display:none">Related videos</h2>
+  <div class="grid grid-4" id="scanVideos"></div>
+</section>
+
+<div class="modal-overlay" id="onboardOverlay">
+  <div class="modal">
+    <h3>Welcome to LearnIQ AI</h3>
+    <p class="muted" style="margin:8px 0 20px">Tell us what you're studying so we can tailor your dashboard, chat, quizzes, and roadmap.</p>
+    <label style="display:block;margin-bottom:6px;color:var(--carbon);font-weight:500">Subject</label>
+    <input type="text" id="onboardSubject" placeholder="e.g. Physics, History, Machine Learning" style="width:100%;margin-bottom:16px" onkeydown="if(event.key==='Enter')document.getElementById('onboardTopic').focus()">
+    <label style="display:block;margin-bottom:6px;color:var(--carbon);font-weight:500">Topic / focus</label>
+    <input type="text" id="onboardTopic" placeholder="e.g. Thermodynamics, World War II, Neural Networks" style="width:100%" onkeydown="if(event.key==='Enter')saveOnboarding()">
+    <div style="margin-top:24px;text-align:right">
+      <button class="btn-link" onclick="skipOnboarding()">Skip for now</button>
+      <button class="btn btn-primary btn-sm" onclick="saveOnboarding()">Start learning</button>
+    </div>
+  </div>
+</div>
+
+<div class="doubt-widget" id="doubtWidget" aria-hidden="true">
+  <div class="doubt-head">
+    <div>
+      <div class="doubt-title">Ask a doubt</div>
+      <div class="doubt-sub" id="doubtTopic"></div>
+    </div>
+    <button class="doubt-close" onclick="closeDoubt()" aria-label="Close">&#215;</button>
+  </div>
+  <div class="doubt-log" id="doubtLog"></div>
+  <div class="doubt-input">
+    <input type="text" id="doubtInput" placeholder="Ask anything\u2026" onkeydown="if(event.key==='Enter')sendDoubt()">
+    <button class="btn btn-primary btn-sm" id="doubtSend" onclick="sendDoubt()">Send</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><h3 id="modalTitle"></h3><div id="modalBody" class="md"></div>
+    <div style="margin-top:24px;text-align:right"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Close</button></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/cloud.js"></script>
+<script src="/db.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

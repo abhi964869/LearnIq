@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets & local config
+.env
+.env.local
+
+# Deploy / OS
+.vercel
+.DS_Store
+Thumbs.db
